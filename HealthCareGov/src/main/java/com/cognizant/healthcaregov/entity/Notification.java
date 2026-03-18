@@ -23,22 +23,6 @@ public class Notification
     @JoinColumn(name = "UserID", nullable = false)
     private User user;
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "AppointmentID")
-//    private Appointment appointment;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "TreatmentID")
-//    private Treatment treatment;
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "HospitalID")
-//    private Hospital hospital;
-
-//
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "ComplianceID")
-//    private ComplianceRecord complianceRecord;
     private Integer entityId;
 
     @Lob

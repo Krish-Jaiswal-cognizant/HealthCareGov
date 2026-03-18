@@ -12,7 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
+@Transactional
 public class ComplianceServiceImpl implements ComplianceService {
 
     @Autowired
@@ -22,27 +28,23 @@ public class ComplianceServiceImpl implements ComplianceService {
     private AuditLogRepository auditLogRepository;
 
     @Override
-    @Transactional
     public ComplianceResponseDTO createComplianceRecord(ComplianceRequestDTO requestDTO, Integer currentUserId) {
-        // 1. Create Compliance Record
         ComplianceRecord record = new ComplianceRecord();
         record.setEntityId(requestDTO.getEntityId());
         record.setType(requestDTO.getType());
         record.setResult(requestDTO.getResult());
         record.setNotes(requestDTO.getNotes());
+        record.setDate(LocalDate.now());
 
         ComplianceRecord savedRecord = complianceRepository.save(record);
 
-        // 2. Log Action
-        logAuditAction(currentUserId, "CREATE", "ComplianceRecord-" + savedRecord.getComplianceID());
+        logAuditAction("CREATE", "ComplianceRecord-" + savedRecord.getComplianceID(), currentUserId);
 
         return mapToDTO(savedRecord);
     }
 
     @Override
-    @Transactional
     public ComplianceResponseDTO updateComplianceRecord(Integer id, ComplianceRequestDTO requestDTO, Integer currentUserId) {
-        // 1. Fetch and Update Compliance Record
         ComplianceRecord existingRecord = complianceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Compliance Record not found with ID: " + id));
 
@@ -51,32 +53,38 @@ public class ComplianceServiceImpl implements ComplianceService {
 
         ComplianceRecord updatedRecord = complianceRepository.save(existingRecord);
 
-        // 2. Log Action
-        logAuditAction(currentUserId, "UPDATE", "ComplianceRecord-" + updatedRecord.getComplianceID());
+        logAuditAction("UPDATE", "ComplianceRecord-" + updatedRecord.getComplianceID(), currentUserId);
 
         return mapToDTO(updatedRecord);
     }
 
-    private void logAuditAction(Integer userId, String action, String resource) {
-        AuditLog log = new AuditLog();
+    // COMP-002: Implementation
+    @Override
+    public List<ComplianceResponseDTO> searchRecords(String type, String result, Integer entityId, LocalDate startDate, LocalDate endDate) {
+        List<ComplianceRecord> records = complianceRepository.searchComplianceRecords(type, result, entityId, startDate, endDate);
+        return records.stream().map(this::mapToDTO).collect(Collectors.toList());
+    }
 
-        // Mocking user proxy for logging since User is managed by another team's module
+    private void logAuditAction(String action, String resource, Integer userId) {
+        AuditLog auditLog = new AuditLog();
+        auditLog.setAction(action);
+        auditLog.setResource(resource);
+        auditLog.setTimestamp(Instant.now()); // Using Instant to match your Entity
+
         User mockUser = new User();
-        mockUser.setUserID(userId);
+        mockUser.setUserID(userId); // Using Capital D
+        auditLog.setUser(mockUser);
 
-        log.setUser(mockUser);
-        log.setAction(action);
-        log.setResource(resource);
-        auditLogRepository.save(log);
+        auditLogRepository.save(auditLog);
     }
 
     private ComplianceResponseDTO mapToDTO(ComplianceRecord record) {
         ComplianceResponseDTO dto = new ComplianceResponseDTO();
-        dto.setComplianceID(record.getComplianceID());
+        dto.setComplianceID(record.getComplianceID()); // Capital D's
         dto.setEntityId(record.getEntityId());
         dto.setType(record.getType());
-        dto.setResult(record.getResult());
         dto.setDate(record.getDate());
+        dto.setResult(record.getResult());
         dto.setNotes(record.getNotes());
         return dto;
     }

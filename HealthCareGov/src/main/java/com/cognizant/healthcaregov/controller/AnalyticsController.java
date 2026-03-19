@@ -13,6 +13,7 @@ import java.util.Map;
 @RequestMapping("/api/analytics")
 public class AnalyticsController {
 
+
     @Autowired
     private AnalyticsService analyticsService;
 

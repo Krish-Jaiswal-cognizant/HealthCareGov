@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.format.DateTimeFormatter; // Added for time formatting
 import java.util.Optional;
 
 @Service
@@ -19,14 +20,23 @@ public class AppointmentService {
     @Autowired
     private ScheduleRepository scheduleRepo;
 
+    // Define the formatter once to ensure HH:mm:ss format (e.g., 10:00:00)
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
+
     @Transactional
     public Appointment bookAppointment(Appointment appointment) {
-        // Logic: Find the doctor's specific slot in the schedule
-        // In AppointmentService.java, change the call to:
+        // Logic: Convert LocalTime to a String that exactly matches the DB "time_slot"
+        String formattedTime = appointment.getTime().format(TIME_FORMATTER);
+
+        // Debugging line (Check your IntelliJ console for this when you click Send)
+        System.out.println("Searching for: Doctor=" + appointment.getDoctor().getUserID() +
+                ", Date=" + appointment.getDate() +
+                ", Time=" + formattedTime);
+
         Optional<Schedule> availableSlot = scheduleRepo.findByDoctorUserIDAndAvailableDateAndTimeSlot(
                 appointment.getDoctor().getUserID(),
                 appointment.getDate(),
-                appointment.getTime().toString()
+                formattedTime // Using the formatted string here
         );
 
         if (availableSlot.isPresent() && "Available".equalsIgnoreCase(availableSlot.get().getStatus())) {
@@ -39,6 +49,7 @@ public class AppointmentService {
             appointment.setStatus("Confirmed");
             return appointmentRepo.save(appointment);
         } else {
+            // If it reaches here, the query returned nothing or the slot isn't 'Available'
             throw new RuntimeException("Error: Selected time slot is not available for this doctor.");
         }
     }

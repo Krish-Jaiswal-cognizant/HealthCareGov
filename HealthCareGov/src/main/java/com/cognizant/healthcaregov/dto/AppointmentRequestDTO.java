@@ -1,19 +1,24 @@
 package com.cognizant.healthcaregov.dto;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-@Data // Lombok: Generates getters, setters, and toString automatically
+@Data
 public class AppointmentRequestDTO {
+
     @NotNull(message = "Patient ID is required")
+    @Min(value = 1, message = "Patient ID must be a positive number")
     private Integer patientID;
 
     @NotNull(message = "Doctor ID is required")
+    @Min(value = 1, message = "Doctor ID must be a positive number")
     private Integer doctorID;
 
     @NotNull(message = "Hospital ID is required")
+    @Min(value = 1, message = "Hospital ID must be a positive number")
     private Integer hospitalID;
 
     @NotNull(message = "Date is required")

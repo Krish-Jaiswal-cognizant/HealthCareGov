@@ -1,48 +1,51 @@
 package com.cognizant.healthcaregov.controller;
 
-import com.cognizant.healthcaregov.entity.*;
+import com.cognizant.healthcaregov.dto.*;
+import com.cognizant.healthcaregov.exception.GlobalExceptionHandler;
 import com.cognizant.healthcaregov.service.IMedicalManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/v1/medical")
 @CrossOrigin(origins = "*")
 public class MedicalManagementController {
+    private static final Logger logger = LoggerFactory.getLogger(MedicalManagementController.class);
 
-    @Autowired
-    private IMedicalManagementService medicalService;
+    @Autowired private IMedicalManagementService medicalService;
 
     @PostMapping("/treatment")
-    public ResponseEntity<Treatment> recordNewTreatment(@RequestBody Treatment treatment) {
-        // This will now trigger the MedicalServiceException if diagnosis is ""
-        Treatment saved = medicalService.recordTreatment(treatment);
-        return new ResponseEntity<>(saved, HttpStatus.CREATED);
+    public ResponseEntity<TreatmentResponseDTO> recordNewTreatment(@RequestBody TreatmentRequestDTO dto) {
+        // Log that a request has arrived
+        logger.info("REST Request: POST /api/v1/medical/treatment received for Patient ID: {}", dto.patientId());
+
+        TreatmentResponseDTO response = medicalService.recordTreatment(dto);
+
+        // Log that the response is ready
+        logger.info("REST Response: Treatment recorded successfully for Patient ID: {}", dto.patientId());
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     @GetMapping("/history/{patientId}")
-    public ResponseEntity<List<Treatment>> getPatientHistory(@PathVariable Integer patientId) {
-        List<Treatment> history = medicalService.getPatientHistory(patientId);
-        return ResponseEntity.ok(history);
+    public ResponseEntity<List<TreatmentResponseDTO>> getPatientHistory(@PathVariable Integer patientId) {
+        return ResponseEntity.ok(medicalService.getPatientHistory(patientId));
     }
 
     @GetMapping("/summary/{patientId}")
-    public ResponseEntity<MedicalRecord> getMedicalSummary(@PathVariable Integer patientId) {
-        MedicalRecord record = medicalService.getSummaryRecord(patientId);
-        return ResponseEntity.ok(record);
+    public ResponseEntity<MedicalSummaryDTO> getMedicalSummary(@PathVariable Integer patientId) {
+        return ResponseEntity.ok(medicalService.getSummaryRecord(patientId));
     }
 
-    // PUT: http://localhost:9090/api/v1/medical/patient/1?updaterId=200
     @PutMapping("/patient/{patientId}")
-    public ResponseEntity<Patient> updatePatient(
+    public ResponseEntity<PatientUpdateDTO> updatePatient(
             @PathVariable Integer patientId,
-            @RequestBody Patient patientDetails,
+            @RequestBody PatientUpdateDTO dto,
             @RequestParam Integer updaterId) {
-
-        Patient updated = medicalService.updatePatient(patientId, patientDetails, updaterId);
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(medicalService.updatePatient(patientId, dto, updaterId));
     }
 }

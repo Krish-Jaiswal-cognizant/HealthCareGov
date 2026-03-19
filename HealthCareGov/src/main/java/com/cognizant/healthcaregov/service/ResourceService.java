@@ -84,5 +84,7 @@ public class ResourceService {
         dto.setQuantity(resource.getQuantity());
         dto.setStatus(resource.getStatus());
         return dto;
+
+
     }
 }

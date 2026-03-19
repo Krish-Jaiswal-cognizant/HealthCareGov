@@ -27,6 +27,6 @@ public class ResourceDTO {
     @Max(value = 10000, message = "Quantity cannot exceed 10,000")
     private Integer quantity;
 
-    @NotBlank(message = "Status is required")
+    @NotBlank(message = "Status is required in text")
     private String status;
 }

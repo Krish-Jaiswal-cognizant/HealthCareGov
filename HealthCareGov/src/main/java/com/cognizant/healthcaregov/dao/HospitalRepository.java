@@ -17,5 +17,4 @@ public interface HospitalRepository extends JpaRepository<Hospital, Integer> {
 
     @Query("SELECT h FROM Hospital h WHERE LOWER(h.name) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(h.location) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Hospital> searchHospitals(@Param("query") String query);
-
 }

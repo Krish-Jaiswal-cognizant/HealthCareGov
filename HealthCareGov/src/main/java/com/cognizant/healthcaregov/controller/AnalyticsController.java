@@ -18,26 +18,23 @@ public class AnalyticsController {
     private AnalyticsService analyticsService;
 
     @GetMapping("/hospitals")
-    public ResponseEntity<Map<String, Object>> getHospitalAnalytics() {
-        Map<String, Object> analytics = analyticsService.getHospitalAnalytics();
-        return ResponseEntity.ok(analytics);
+    public Map<String,Object> getHospitalAnalytics() {
+        return analyticsService.getHospitalAnalytics();
     }
 
     @GetMapping("/reports/hospital-capacity")
-    public ResponseEntity<Map<String, Object>> getHospitalCapacityReport() {
-        Map<String, Object> report = analyticsService.getHospitalCapacityReport();
-        return ResponseEntity.ok(report);
+    public Map<String,Object> getHospitalCapacityReport() {
+        return analyticsService.getHospitalCapacityReport();
+
     }
 
     @GetMapping("/reports/resource-availability")
-    public ResponseEntity<Map<String, Object>> getResourceAvailabilityReport() {
-        Map<String, Object> report = analyticsService.getResourceAvailabilityReport();
-        return ResponseEntity.ok(report);
+    public Map<String,Object> getResourceAvailabilityReport() {
+        return analyticsService.getResourceAvailabilityReport();
     }
 
     @GetMapping("/reports/resource-distribution")
-    public ResponseEntity<Map<String, Object>> getResourceDistributionReport() {
-        Map<String, Object> report = analyticsService.getResourceDistributionReport();
-        return ResponseEntity.ok(report);
+    public Map<String,Object> getResourceDistributionReport() {
+        return analyticsService.getResourceDistributionReport();
     }
 }

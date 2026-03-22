@@ -1,6 +1,8 @@
 package com.cognizant.healthcaregov.service;
 
 import com.cognizant.healthcaregov.dto.AppointmentRequestDTO;
+import com.cognizant.healthcaregov.dto.AppointmentCancelDTO;
+import com.cognizant.healthcaregov.dto.DoctorScheduleDTO;
 import com.cognizant.healthcaregov.entity.*;
 import com.cognizant.healthcaregov.dao.*;
 import com.cognizant.healthcaregov.exception.SlotUnavailableException;
@@ -10,10 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
-@Slf4j // Lombok: Replaces System.out.println with a professional logger
+@Slf4j
 public class AppointmentService {
 
     @Autowired
@@ -22,12 +26,11 @@ public class AppointmentService {
     @Autowired
     private ScheduleRepository scheduleRepo;
 
-    // We need these to fetch the real entities from the IDs in the DTO
     @Autowired
     private PatientRepository patientRepo;
 
     @Autowired
-    private UserRepository userRepo; // Assuming this handles Doctor/User entities
+    private UserRepository userRepo;
 
     @Autowired
     private HospitalRepository hospitalRepo;
@@ -36,13 +39,11 @@ public class AppointmentService {
 
     @Transactional
     public Appointment bookAppointment(AppointmentRequestDTO dto) {
-        // 1. Log the attempt professionally
         log.info("Booking request received - Doctor ID: {}, Date: {}, Time: {}",
                 dto.getDoctorID(), dto.getDate(), dto.getTime());
 
         String formattedTime = dto.getTime().format(TIME_FORMATTER);
 
-        // 2. Check for the available slot
         Optional<Schedule> availableSlot = scheduleRepo.findByDoctorUserIDAndAvailableDateAndTimeSlot(
                 dto.getDoctorID(),
                 dto.getDate(),
@@ -51,7 +52,6 @@ public class AppointmentService {
 
         if (availableSlot.isPresent() && "Available".equalsIgnoreCase(availableSlot.get().getStatus())) {
 
-            // 3. Fetch full entities to build the Appointment relationship
             Patient patient = patientRepo.findById(dto.getPatientID())
                     .orElseThrow(() -> new RuntimeException("Patient not found"));
 
@@ -61,12 +61,10 @@ public class AppointmentService {
             Hospital hospital = hospitalRepo.findById(dto.getHospitalID())
                     .orElseThrow(() -> new RuntimeException("Hospital not found"));
 
-            // 4. Mark the slot as Booked
             Schedule schedule = availableSlot.get();
             schedule.setStatus("Booked");
             scheduleRepo.save(schedule);
 
-            // 5. Create and Map the Appointment entity
             Appointment appointment = new Appointment();
             appointment.setPatient(patient);
             appointment.setDoctor(doctor);
@@ -79,9 +77,53 @@ public class AppointmentService {
             return appointmentRepo.save(appointment);
 
         } else {
-            // 6. Use your new Custom Exception!
             log.warn("Booking failed - Slot unavailable for Doctor ID: {}", dto.getDoctorID());
             throw new SlotUnavailableException("Error: Selected time slot is not available for this doctor.");
         }
+    }
+
+    @Transactional
+    public void cancelAppointment(AppointmentCancelDTO cancelDTO) {
+        Appointment appointment = appointmentRepo.findById(cancelDTO.getAppointmentID())
+                .orElseThrow(() -> new RuntimeException("Appointment not found with ID: " + cancelDTO.getAppointmentID()));
+
+        if ("Cancelled".equalsIgnoreCase(appointment.getStatus())) {
+            throw new RuntimeException("Appointment is already cancelled.");
+        }
+
+        String formattedTime = appointment.getTime().format(TIME_FORMATTER);
+
+        Optional<Schedule> scheduleSlot = scheduleRepo.findByDoctorUserIDAndAvailableDateAndTimeSlot(
+                appointment.getDoctor().getUserID(),
+                appointment.getDate(),
+                formattedTime
+        );
+
+        scheduleSlot.ifPresent(slot -> {
+            slot.setStatus("Available");
+            scheduleRepo.save(slot);
+            log.info("Schedule slot freed up for Doctor ID: {}", appointment.getDoctor().getUserID());
+        });
+
+        appointment.setStatus("Cancelled");
+        appointmentRepo.save(appointment);
+
+        log.info("Appointment ID: {} has been successfully cancelled.", appointment.getAppointmentID());
+    }
+
+    public List<DoctorScheduleDTO> getDoctorSchedule(Integer doctorID) {
+        // 1. Fetch appointments for this specific doctor
+        List<Appointment> appointments = appointmentRepo.findByDoctorUserID(doctorID);
+
+        // 2. Convert to DTO using the single 'getName()' field
+        return appointments.stream()
+                .map(app -> new DoctorScheduleDTO(
+                        app.getAppointmentID(),
+                        app.getPatient().getName(), // Using single name field here
+                        app.getDate(),
+                        app.getTime(),
+                        app.getStatus()
+                ))
+                .collect(Collectors.toList());
     }
 }
